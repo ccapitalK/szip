@@ -5,7 +5,7 @@
 unsigned char _otn[256];
 unsigned char _nto[256];
 
-int create_translation_table(){
+int create_translation_table(void){
     for(short n=0; n<table_size; ++n)
         reg_pair(sorted_table[n],n);
     return 0;

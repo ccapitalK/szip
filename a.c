@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<sys/types.h>
 #include<sys/stat.h>
 #include<fcntl.h>
@@ -12,27 +13,76 @@
 
 char mode;
 int infile, outfile;
-off_t file_size;
+unsigned long file_size;
 const unsigned char pivot=5;
 
-//compress human readable, decompress human writeable
-void decompress(){
+unsigned short rd_b=0;
+char  rd_c=16;
+
+void update_rdb(){
+    static char final=0;
+    rd_b<<=8;
+    if(read(infile,&rd_b,1)!=1){
+        if(final==1){
+            printf("Error, input file too short for header\n");
+            exit(-1);
+        }
+        rd_b&=0xff00;
+        final=1;
+    }
+}
+
+unsigned char m_read_1(void){
+    const unsigned short mask=((1<<pivot)-1);
+    unsigned char ret;
+    while(rd_c>=8){
+        rd_c-=8;
+        update_rdb();
+    }
+    if((rd_b>>(16-rd_c-pivot))<mask){
+        ret=(rd_b>>(16-rd_c-pivot));
+        rd_c+=pivot;
+    }else{
+        rd_c+=pivot;
+        if(rd_c>=8){
+            rd_c-=8;
+            update_rdb();
+        }
+        ret=(rd_b>>(8-rd_c));
+        rd_c+=8;
+        if(rd_c>=8){
+            rd_c-=8;
+            update_rdb();
+        }
+    }
+    return ret;
+}
+
+void decompress(void){
+    unsigned char buf;
+    for(unsigned long i=0; i < file_size; ++i){
+        buf=m_read_1();
+        buf=_nto[buf];
+        if(write(outfile,&buf,1)!=1){
+            printf("Error writing decompressed output to file\n");
+            exit(-1);
+        }
+    }
 
 }
 
 unsigned short wr_b=0;
-unsigned char  wr_c=0;
+char  wr_c=0;
 void flush_mbuf(void){
-    //printf("%04x\n",wr_b);
     unsigned char buf=wr_b>>8;
     wr_b<<=8;
     write(outfile,&buf,1);
 }
 
 void m_write_1(unsigned char ch){
-    const unsigned char mask=((1<<pivot)-1);
+    const unsigned short mask=((1<<pivot)-1);
     if(ch<mask){
-        wr_b|=ch<<(15-pivot-wr_c);
+        wr_b|=(unsigned short)(ch)<<(16-pivot-wr_c);
         wr_c+=pivot;
         if(wr_c>=8){
             flush_mbuf();
@@ -54,7 +104,7 @@ void m_write_1(unsigned char ch){
     }
 }
 
-void compress(){
+void compress(void){
     write(outfile,&table_size,1);
     write(outfile,&file_size,sizeof(file_size));
     for(short i=0; i<table_size; ++i)
@@ -100,6 +150,7 @@ int main(int argc, char *argv[]){
         compress();
     }else if(mode==EXP){
         read_table();
+        create_translation_table();
         decompress();
     }
     close(infile);
