@@ -20,15 +20,15 @@ unsigned short rd_b=0;
 char  rd_c=16;
 
 void update_rdb(){
-    static char final=0;
+    static int final=0;
     rd_b<<=8;
     if(read(infile,&rd_b,1)!=1){
-        if(final==1){
+        if(final>0){
             printf("Error, input file too short for header\n");
             exit(-1);
         }
         rd_b&=0xff00;
-        final=1;
+        ++final;
     }
 }
 
@@ -39,8 +39,8 @@ unsigned char m_read_1(void){
         rd_c-=8;
         update_rdb();
     }
-    if((rd_b>>(16-rd_c-pivot))<mask){
-        ret=(rd_b>>(16-rd_c-pivot));
+    if(((rd_b>>(16-rd_c-pivot))&mask)<mask){
+        ret=(rd_b>>(16-rd_c-pivot))&mask;
         rd_c+=pivot;
     }else{
         rd_c+=pivot;

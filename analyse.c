@@ -42,7 +42,7 @@ void analyse(void){
     if(print_table){
         printf("Table size: %d (0x%03x)\n", table_size, table_size);
         for(int i = 0; i < table_size; ++i)
-            printf("%0d: %03d [0x%02x] (count: %12lld)\n", i, (int)sorted_table[i], (int)sorted_table[i],analytics_table[sorted_table[i]].count);
+            printf("%03d: %03d [0x%02x] (count: %12lld)\n", i, (int)sorted_table[i], (int)sorted_table[i],analytics_table[sorted_table[i]].count);
     }
 }
 
